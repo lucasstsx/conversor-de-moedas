@@ -22,25 +22,26 @@
 }
 
 h1{
-  font-size: 32px;
-  line-height: 48px;
-  font-weight: bolder;
+  font-size: 32px !important;
+  line-height: 48px !important;
+  font-weight: bolder !important;
 }
 
 button{
-  font-size: 16px;
-  line-height: 20px;
-  font-weight: bold;
+  font-size: 16px !important;
+  line-height: 20px !important;
+  font-weight: bold !important;
 }
 
 body, span{
-  font-size: 16px;
-  line-height: 20px;
-  font-weight: normal;
+  color: var(--white) !important;
+  font-size: 16px !important;
+  line-height: 20px !important;
+  font-weight: normal !important;
 }
 
 label{
-  font-size: 12px;
-  line-height: 16px;
-  font-weight: normal;
+  font-size: 12px !important;
+  line-height: 16px !important;
+  font-weight: normal !important;
 }
