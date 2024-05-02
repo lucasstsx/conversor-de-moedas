@@ -10,82 +10,133 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+
 import axios from 'axios'
 import { useEffect, useState } from 'react'
 
-const BASE_URL = 'https://economia.awesomeapi.com.br'
-interface IMoeda {
-  sigla: string
-  nome: string
+interface ICombinacao {
+  [sigla: string]: string
+}
+export interface IConversaoMoedas {
+  code: string
+  codein: string
+  name: string
+  high: string
+  low: string
+  varBid: string
+  pctChange: string
+  bid: string
+  ask: string
+  timestamp: string
+  create_date: Date
 }
 
-// Home.getInitialProps = async () => {
-//   const response = await axios.get(`${BASE_URL}/json/available/uniq`)
-//   console.log(response.data)
-//   return { dados: response.data }
-// }
+const BASE_URL = 'https://economia.awesomeapi.com.br'
 
-export default function Home() {
-  const [moedas, setMoedas] = useState<IMoeda[]>([])
+export default function Home({ stars }: { stars: number }) {
+  const [combinacoes, setCombinacoes] = useState<ICombinacao>({})
+  const [combinacaoSelecionada, setCombinacaoSelecionada] = useState('')
+
+  const fetchCombinacoes = async () => {
+    try {
+      const response = await axios.get<ICombinacao>(
+        `${BASE_URL}/json/available`,
+      )
+      // Filtra e converte a resposta diretamente para um objeto
+      const combinacoesFiltradas = Object.fromEntries(
+        Object.entries(response.data).filter(([combinacao]) =>
+          combinacao.endsWith('BRL'),
+        ),
+      )
+      for (const [combinacao, nome] of Object.entries(combinacoesFiltradas)) {
+        combinacoesFiltradas[combinacao] = nome.replace('/Real Brasileiro', '') // Substitui todas as ocorrências de '/Real Brasileiro' por ''
+      }
+      setCombinacoes(combinacoesFiltradas)
+    } catch (error) {
+      console.error('Error fetching data:', error)
+    }
+  }
+
+  function handleMoedaChange(val: string) {
+    setCombinacaoSelecionada(val)
+  }
+
+  async function handleConvertClick() {
+    if (!combinacaoSelecionada) {
+      alert('Selecione uma moeda')
+      return
+    }
+
+    const inputValorElement = document.querySelector(
+      '#valor',
+    ) as HTMLInputElement
+
+    const divFormElement = document.querySelector('.form') as HTMLDivElement
+
+    try {
+      const response = await axios.get<IConversaoMoedas[]>(
+        `${BASE_URL}/${combinacaoSelecionada}`,
+      )
+      const valorMoeda = response.data.map((item: IConversaoMoedas) => ({
+        ask: item.ask,
+        code: item.code,
+        codein: item.codein,
+      }))[0]
+
+      const valorInput = inputValorElement.value.replace(',', '')
+
+      if (isNaN(Number(valorInput))) {
+        alert('Valor inválido')
+        return
+      }
+      const resultado = (
+        Number(valorMoeda.ask) * Number(valorInput)
+      ).toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: valorMoeda.codein,
+      })
+      console.log(valorMoeda)
+
+      if (divFormElement) {
+        const resultadoElement = document.createElement('div')
+        resultadoElement.className = 'resultado'
+        resultadoElement.textContent = `Valor convertido: ${resultado}`
+        divFormElement.appendChild(resultadoElement)
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error)
+    }
+  }
 
   useEffect(() => {
-    const fetchMoedas = async () => {
-      try {
-        const response = await axios.get<IMoeda>(
-          `${BASE_URL}/json/available/uniq`,
-        )
-        const moedasArray = Object.entries(response.data).map(
-          ([sigla, nome]) => ({ sigla, nome }),
-        )
-        const siglasParaExcluir = ['BRL', 'BRLT']
-
-        // Filtra a lista de moedas, excluindo aquelas com as siglas especificadas
-        const moedasFiltradas = moedasArray.filter(
-          (moeda) => !siglasParaExcluir.includes(moeda.sigla),
-        )
-        console.log(moedasFiltradas)
-        setMoedas(moedasFiltradas)
-      } catch (error) {
-        // aqui temos acesso ao erro, quando alguma coisa inesperada acontece:
-        console.log(error)
-      }
-    }
-    fetchMoedas()
+    fetchCombinacoes()
   }, [])
 
   return (
     <div>
-      <div>
-        <h1>Moedas Disponíveis:</h1>
-        <ul></ul>
-      </div>
+      {stars}
       <h1>Conversor de moedas para BRL</h1>
-      <div>
+      <div className="form">
         <Label htmlFor="valor">VALOR</Label>
-        <Input name="valor" id="valor" type="text" placeholder="0,0"></Input>
+        <Input id="valor" type="text" placeholder="0,00"></Input>
 
         <Label htmlFor="moeda">MOEDA</Label>
-        <Select name="moeda">
+        <Select onValueChange={(e) => handleMoedaChange(e)}>
           <SelectTrigger>
             <SelectValue placeholder="Selecione a moeda" />
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
-              {/* <SelectLabel>Selecione a moeda</SelectLabel> */}
-              {moedas.map((moeda) => (
-                <SelectItem key={moeda.sigla} value={moeda.sigla}>
-                  {moeda.nome}
+              {Object.entries(combinacoes).map(([combinacao, nome]) => (
+                <SelectItem key={combinacao} value={combinacao}>
+                  {nome}
                 </SelectItem>
               ))}
             </SelectGroup>
           </SelectContent>
         </Select>
 
-        <Button>Converter em reais</Button>
-        <div className="resultado">
-          <span>US$ 1 = R$ 4,86</span>
-          <h1>486,00 Reais</h1>
-        </div>
+        <Button onClick={handleConvertClick}>Converter em reais</Button>
       </div>
     </div>
   )
