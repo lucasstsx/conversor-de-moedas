@@ -135,10 +135,10 @@ export default function Home() {
   }, [buscando])
 
   return (
-    <div className="flex w-full flex-col items-center justify-center rounded-3xl px-8">
-      <div className="flex w-full flex-col">
+    <div className="flex w-full flex-col items-center justify-center rounded-3xl px-8 md:max-w-[480px] md:border md:p-0 md:dark:border-blue-500 md:dark:bg-blue-300">
+      <div className="flex w-full flex-col md:px-16 md:py-14">
         <h1 className="mb-4 text-center dark:text-white">
-          Conversor de moedas para BRL
+          Conversor de moedas
         </h1>
         <Label className="mb-[5px] dark:text-blue-900" htmlFor="valor">
           VALOR
@@ -180,7 +180,7 @@ export default function Home() {
         </Button>
       </div>
       {moeda ? (
-        <div className="result px py-10 text-center">
+        <div className="result px py-10 text-center md:w-full md:rounded-b-3xl md:bg-slate-300 md:dark:bg-blue-500">
           <span className={`${ibmpm.className} dark:text-blue-900`}>
             {moeda.code === 'DOGE'
               ? 'DOGE 1,00'
