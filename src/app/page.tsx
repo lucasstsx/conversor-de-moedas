@@ -14,10 +14,10 @@ import {
 import axios from 'axios'
 import { useEffect, useState } from 'react'
 
-interface ICombinacao {
+interface ICombinacoes {
   [sigla: string]: string
 }
-export interface IConversaoMoedas {
+interface IConversaoMoeda {
   code: string
   codein: string
   name: string
@@ -30,16 +30,24 @@ export interface IConversaoMoedas {
   timestamp: string
   create_date: Date
 }
+interface IMoedaConversao {
+  ask: IConversaoMoeda['ask']
+  code: IConversaoMoeda['code']
+  codein: IConversaoMoeda['codein']
+}
 
 const BASE_URL = 'https://economia.awesomeapi.com.br'
 
-export default function Home({ stars }: { stars: number }) {
-  const [combinacoes, setCombinacoes] = useState<ICombinacao>({})
+export default function Home() {
+  const [combinacoes, setCombinacoes] = useState<ICombinacoes>({})
   const [combinacaoSelecionada, setCombinacaoSelecionada] = useState('')
+  const [moeda, setMoeda] = useState<IMoedaConversao>()
+  const [resultado, setResultado] = useState('')
+  const [valorInput, setValorInput] = useState('')
 
   const fetchCombinacoes = async () => {
     try {
-      const response = await axios.get<ICombinacao>(
+      const response = await axios.get<ICombinacoes>(
         `${BASE_URL}/json/available`,
       )
       // Filtra e converte a resposta diretamente para um objeto
@@ -61,48 +69,48 @@ export default function Home({ stars }: { stars: number }) {
     setCombinacaoSelecionada(val)
   }
 
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const valort = event.target.value
+    setValorInput(valort)
+  }
+
   async function handleConvertClick() {
+    if (isNaN(Number(valorInput)) || Number(valorInput) <= 0) {
+      alert(
+        valorInput.includes(',')
+          ? `Valor inválido! ${'\nObs: Utilize ponto ao invés de vírgula. Ex: 1.00'}`
+          : `Valor inválido!`,
+      )
+      return
+    }
     if (!combinacaoSelecionada) {
       alert('Selecione uma moeda')
       return
     }
 
-    const inputValorElement = document.querySelector(
-      '#valor',
-    ) as HTMLInputElement
-
-    const divFormElement = document.querySelector('.form') as HTMLDivElement
-
     try {
-      const response = await axios.get<IConversaoMoedas[]>(
+      const response = await axios.get<IConversaoMoeda[]>(
         `${BASE_URL}/${combinacaoSelecionada}`,
       )
-      const valorMoeda = response.data.map((item: IConversaoMoedas) => ({
-        ask: item.ask,
-        code: item.code,
-        codein: item.codein,
-      }))[0]
 
-      const valorInput = inputValorElement.value.replace(',', '')
+      const moeda: IMoedaConversao = response.data.map(
+        (item: IConversaoMoeda) => ({
+          ask: item.ask,
+          code: item.code,
+          codein: item.codein,
+        }),
+      )[0]
 
-      if (isNaN(Number(valorInput))) {
-        alert('Valor inválido')
-        return
-      }
-      const resultado = (
-        Number(valorMoeda.ask) * Number(valorInput)
-      ).toLocaleString('pt-BR', {
-        style: 'currency',
-        currency: valorMoeda.codein,
-      })
-      console.log(valorMoeda)
+      setMoeda(moeda)
 
-      if (divFormElement) {
-        const resultadoElement = document.createElement('div')
-        resultadoElement.className = 'resultado'
-        resultadoElement.textContent = `Valor convertido: ${resultado}`
-        divFormElement.appendChild(resultadoElement)
-      }
+      const result = (Number(moeda.ask) * Number(valorInput)).toLocaleString(
+        'pt-BR',
+        {
+          style: 'currency',
+          currency: moeda.codein,
+        },
+      )
+      setResultado(result)
     } catch (error) {
       console.error('Error fetching data:', error)
     }
@@ -114,11 +122,16 @@ export default function Home({ stars }: { stars: number }) {
 
   return (
     <div>
-      {stars}
       <h1>Conversor de moedas para BRL</h1>
       <div className="form">
         <Label htmlFor="valor">VALOR</Label>
-        <Input id="valor" type="text" placeholder="0,00"></Input>
+        <Input
+          id="valor"
+          type="text"
+          placeholder="0.00"
+          onChange={(e) => handleInputChange(e)}
+          value={valorInput}
+        ></Input>
 
         <Label htmlFor="moeda">MOEDA</Label>
         <Select onValueChange={(e) => handleMoedaChange(e)}>
@@ -137,6 +150,24 @@ export default function Home({ stars }: { stars: number }) {
         </Select>
 
         <Button onClick={handleConvertClick}>Converter em reais</Button>
+        {moeda ? (
+          <div className="result">
+            <span>
+              {Number('1').toLocaleString('pt-BR', {
+                style: 'currency',
+                currency: moeda.code,
+              })}{' '}
+              ={' '}
+              {Number(moeda.ask).toLocaleString('pt-BR', {
+                style: 'currency',
+                currency: 'BRL',
+              })}
+            </span>
+            <h1>{resultado} Reais</h1>
+          </div>
+        ) : (
+          ''
+        )}
       </div>
     </div>
   )
